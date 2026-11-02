@@ -1,0 +1,47 @@
+name: Fetch mushaf fonts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download QCF V2 page fonts (604 files)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/quran/quran.com-frontend-next.git qfe
+          cd qfe
+          git sparse-checkout set public/fonts/quran/hafs/v2/ttf
+          cd ..
+          mkdir -p fonts
+          cp qfe/public/fonts/quran/hafs/v2/ttf/*.ttf fonts/
+          rm -rf qfe
+          echo "Fonts: $(ls fonts | wc -l)"
+          test "$(ls fonts | wc -l)" -eq 604
+
+      - name: Write notice
+        run: |
+          cat > NOTICE.md <<'TXT'
+          # Nidaa — Mushaf page fonts
+
+          QCF V2 page fonts (p1.ttf … p604.ttf), Madinah Mushaf, Hafs ʿan ʿĀṣim,
+          calligraphy by Uthman Taha.
+
+          © King Fahd Glorious Quran Printing Complex (KFGQPC), Madinah.
+          Distributed unmodified, free of charge, for Quran rendering only.
+          The font files must not be modified or sold.
+          Source: https://github.com/quran/quran.com-frontend-next (public/fonts/quran/hafs/v2/ttf)
+          TXT
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fonts NOTICE.md
+          git commit -m "Add QCF V2 page fonts" || echo "Nothing to commit"
+          git push
